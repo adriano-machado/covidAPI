@@ -1,13 +1,12 @@
 
-var express = require("express");
-var app = express();
-var request = require("request");
-var axios = require("axios");
-var cheerio = require("cheerio");
-var cors = require('cors')
+const express = require("express");
+const app = express();
+const axios = require("axios");
+const cheerio = require("cheerio");
+const cors = require('cors')
 
 app.use(cors());
-app.get('/', async (req,res) => 
+app.get('/countries', async (req,res) => 
 {
   let response;
   try {
