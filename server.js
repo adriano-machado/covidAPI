@@ -1,49 +1,14 @@
+
 var express = require("express");
 var app = express();
 var request = require("request");
 var axios = require("axios");
 var cheerio = require("cheerio");
-var db = require("quick.db");
 var cors = require('cors')
 
 app.use(cors());
-
-app.use('/', express.static('www'));
-
-var getall = setInterval(async () => {
-  let response;
-  try {
-    response = await axios.get("https://www.worldometers.info/coronavirus/");
-    if (response.status !== 200) {
-      console.log("ERROR");
-    }
-  } catch (err) {
-    return null;
-  }
-
-  // to store parsed data
-  const result = {};
-
-  // get HTML and parse death rates
-  const html = cheerio.load(response.data);
-  html(".maincounter-number").filter((i, el) => {
-    let count = el.children[0].next.children[0].data || "0";
-    count = parseInt(count.replace(/,/g, "") || "0", 10);
-    // first one is
-    if (i === 0) {
-      result.cases = count;
-    } else if (i === 1) {
-      result.deaths = count;
-    } else {
-      result.recovered = count;
-    }
-  });
-
-  db.set("all", result);
-  console.log("Updated The Cases", result);
-}, 150000);
-
-var getcountries = setInterval(async () => {
+app.get('/', async (req,res) => 
+{
   let response;
   try {
     response = await axios.get("https://www.worldometers.info/coronavirus/");
@@ -62,7 +27,7 @@ var getcountries = setInterval(async () => {
   const countriesTable = html("table#main_table_countries_today");
   const countriesTableCells = countriesTable
     .children("tbody")
-    .children("tr:not(.row_continent)")
+    .children("tr")
     .children("td");
 
   // count worldometers table columns
@@ -192,43 +157,7 @@ var getcountries = setInterval(async () => {
     }
   }
 
-  db.set("countries", result);
-  console.log("Updated The Countries", result);
-}, 150000);
+  return res.json(result)
+})
 
-app.get("/", async function(request, response) {
-  let a = await db.fetch("all");
-  response.send(
-    `${a.cases} cases are reported of the COVID-19 Novel Coronavirus strain<br> ${a.deaths} have died from it <br>\n${a.recovered} have recovered from it <br> Get the endpoint /all to get information for all cases <br> get the endpoint /countries for getting the data sorted country wise`
-  );
-});
-
-var listener = app.listen(process.env.PORT, function() {
-  console.log("Your app is listening on port " + listener.address().port);
-});
-
-app.get("/all/", async function(req, res) {
-  let all = await db.fetch("all");
-  res.send(all);
-});
-
-app.get("/countries/", async function(req, res) {
-  let countries = await db.fetch("countries");
-  res.send(countries);
-});
-
-app.get("/countries/:country", async function(req, res) {
-  let countries = await db.fetch("countries");
-  let country = countries.find(
-  	e => {
-        	if(e.country.toLowerCase().localeCompare(req.params.country.toLowerCase()) === 0)
-        	{
-            return true;
-          }
-  	});
-  if (!country) {
-    res.send("Country not found");
-    return;
-  }
-  res.send(country);
-});
+app.listen(process.env.PORT || 3333)
